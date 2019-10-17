@@ -56,18 +56,20 @@ idx = np.random.permutation(args.data_num)
 data = data[idx]
 label = label[idx]
 
+
 def evaluate_accuracy(net, data_batch, true_label):
-    data_batch = torch.Tensor(data_batch).to(device)
-    true_label = torch.Tensor(true_label).to(device)
-    pred_label_vec = net(data_batch)
-    pred_label = torch.argmax(pred_label_vec, dim=1).long()
-    correct = 0
-    true_label = torch.squeeze(true_label, dim=0).long()
-    for i in range(pred_label.size(0)):
-        if pred_label[i] == true_label[i]:
-            correct += 1
-    acc = correct / len(data_batch)
-    return acc
+    with torch.no_grad:
+        data_batch = torch.Tensor(data_batch).to(device)
+        true_label = torch.Tensor(true_label).to(device)
+        pred_label_vec = net(data_batch)
+        pred_label = torch.argmax(pred_label_vec, dim=1).long()
+        correct = 0
+        true_label = torch.squeeze(true_label, dim=0).long()
+        for i in range(pred_label.size(0)):
+            if pred_label[i] == true_label[i]:
+                correct += 1
+        acc = correct / len(data_batch)
+        return acc
 
 
 def plot_decision_boundary(net, data, title_str):
@@ -189,7 +191,7 @@ if args.use_conf:
     plot_decision_boundary(student_net, data, "Toy experiment Student classfification")
     # plt.show()
 else:
-    print('hhh')
+    print('Training student without confidence score...')
     for i in range(args.epochs):
         id_batch = np.random.choice(len(data), args.batch_size)
         data_batch = torch.Tensor(data[id_batch]).to(device)
