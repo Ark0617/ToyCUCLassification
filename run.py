@@ -58,7 +58,7 @@ label = label[idx]
 
 
 def evaluate_accuracy(net, data_batch, true_label):
-    with torch.no_grad:
+    with torch.no_grad():
         data_batch = torch.Tensor(data_batch).to(device)
         true_label = torch.Tensor(true_label).to(device)
         pred_label_vec = net(data_batch)
@@ -181,11 +181,11 @@ if args.use_conf:
         eval_id_batch = np.random.choice(len(data), args.eval_batch_size)
         eval_data_batch = torch.Tensor(data[eval_id_batch])
         eval_label_batch = torch.Tensor(label[eval_id_batch])
-        acc = evaluate_accuracy(student_net, eval_data_batch, eval_label_batch)
+        # acc = evaluate_accuracy(student_net, eval_data_batch, eval_label_batch)
         tb_writer.add_scalar('student_kd_loss', kd_loss, i)
-        tb_writer.add_scalar('student_accuracy', acc, i)
+        # tb_writer.add_scalar('student_accuracy', acc, i)
         if i % 100 == 0:
-            print('Student Training Epoch: {}, kd loss: {}, acc: {}'.format(i, kd_loss, acc))
+            print('Student Training Epoch: {}, kd loss: {}'.format(i, kd_loss))
     student_acc = evaluate_accuracy(student_net, data, label)
     print("student final accuracy: {}".format(student_acc))
     plot_decision_boundary(student_net, data, "Toy experiment Student classfification")
