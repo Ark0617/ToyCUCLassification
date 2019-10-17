@@ -41,7 +41,7 @@ args = parser.parse_args()
 teacher_net = ToyTeacherNet(args.teacher_hidden_dim).to(device)
 student_net = ToyStudentNet(args.student_hidden_dim).to(device)
 conf_predictor = ToyConfPredictor(args.teacher_hidden_dim, args.predictor_hidden_dim).to(device)
-student_feature_transform = nn.Linear(args.student_hidden_dim, args.teacher_hidden_dim)
+student_feature_transform = nn.Linear(args.student_hidden_dim, args.teacher_hidden_dim).to(device)
 teacher_optimizer = optim.Adam(teacher_net.parameters(), args.teacher_lr)
 student_optimizer = optim.Adam(student_net.parameters(), args.student_lr)
 predictor_optimizer = optim.Adam(conf_predictor.parameters(), args.pred_lr)
@@ -71,12 +71,12 @@ def evaluate_accuracy(net, data_batch, true_label):
 
 
 def plot_decision_boundary(net, data, title_str):
-    X = data #.numpy()
+    X = data
     x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
     y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5
     h = 0.01
     xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
-    Z = np.argmax(net(torch.Tensor(np.c_[xx.ravel(), yy.ravel()])).detach().numpy(), axis=1)
+    Z = np.argmax(net(torch.Tensor(np.c_[xx.ravel(), yy.ravel()]).to(device)).cpu().detach().numpy(), axis=1)
     Z = Z.reshape(xx.shape)
     plt.contourf(xx, yy, Z, alpha=0.6, cmap=plt.cm.Spectral)  # cmap=plt.cm.Spectral
     dataset.visualize_data()
