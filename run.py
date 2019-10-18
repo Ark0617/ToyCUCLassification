@@ -10,6 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.autograd import Variable
+import time
 
 torch.utils.backcompat.broadcast_warning.enabled = True
 torch.utils.backcompat.keepdim_warning.enabled = True
@@ -22,18 +23,18 @@ parser = argparse.ArgumentParser(description='a toy version CU classification')
 
 parser.add_argument('--lamba', type=float, default=0.01)
 parser.add_argument('--predictor-hidden-dim', type=int, default=10)
-parser.add_argument('--teacher-hidden-dim', type=int, default=10)
-parser.add_argument('--student-hidden-dim', type=int, default=5)
+parser.add_argument('--teacher-hidden-dim', type=int, default=20)
+parser.add_argument('--student-hidden-dim', type=int, default=10)
 parser.add_argument('--batch-size', type=int, default=128)
-parser.add_argument('--epochs', type=int, default=5000)
-parser.add_argument('--teacher-pretrain-epochs', type=int, default=5000)
-parser.add_argument('--predictor-epochs', type=int, default=5000)
+parser.add_argument('--epochs', type=int, default=3000)
+parser.add_argument('--teacher-pretrain-epochs', type=int, default=3000)
+parser.add_argument('--predictor-epochs', type=int, default=3000)
 parser.add_argument('--labeled-prior', type=float, default=0.3)
 parser.add_argument('--data-num', type=int, default=7680)
-parser.add_argument('--pred-lr', type=float, default=1e-1)
-parser.add_argument('--teacher-lr', type=float, default=1e-1)
-parser.add_argument('--student-lr', type=float, default=1e-1)
-parser.add_argument('--eval_batch_size', type=int, default=64)
+parser.add_argument('--pred-lr', type=float, default=0.1)
+parser.add_argument('--teacher-lr', type=float, default=0.1)
+parser.add_argument('--student-lr', type=float, default=0.1)
+parser.add_argument('--eval_batch_size', type=int, default=128)
 parser.add_argument('--use-conf', action='store_true')
 parser.add_argument('--alpha', type=float, default=1)
 args = parser.parse_args()
@@ -111,7 +112,7 @@ if args.use_conf:
     conf_label = torch.Tensor(label[:conf_threshold]).to(device)
     unconf_data = torch.Tensor(data[conf_threshold:]).to(device)
     unconf_label = torch.Tensor(label[conf_threshold:]).to(device)
-    conf_vec = teacher_net(conf_data)
+    conf_vec = teacher_net(conf_data).detach()
     conf = torch.empty(conf_data.size(0))
     for i in range(len(conf_vec)):
         conf[i] = conf_vec[i, conf_label[i].long()]
@@ -122,7 +123,7 @@ if args.use_conf:
         conf_id_batch = np.random.choice(len(conf_data), args.batch_size)
         conf_data_batch = conf_data[conf_id_batch]
         conf_label_batch = conf_label[conf_id_batch]
-        conf_teacher_feature_batch = teacher_net.feature_extract(conf_data_batch)
+        conf_teacher_feature_batch = teacher_net.feature_extract(conf_data_batch).detach()
         conf_z_i = torch.cat([conf_data_batch, conf_label_batch, conf_teacher_feature_batch], dim=1)
         conf_g_z = conf_predictor(conf_z_i)
         true_conf_batch = conf[conf_id_batch].to(device)
@@ -130,7 +131,7 @@ if args.use_conf:
         unconf_id_batch = np.random.choice(len(unconf_data), args.batch_size)
         unconf_data_batch = unconf_data[unconf_id_batch]
         unconf_label_batch = unconf_label[unconf_id_batch]
-        unconf_teacher_feature_batch = teacher_net.feature_extract(unconf_data_batch)
+        unconf_teacher_feature_batch = teacher_net.feature_extract(unconf_data_batch).detach()
         unconf_z_i = torch.cat([unconf_data_batch, unconf_label_batch, unconf_teacher_feature_batch], dim=1)
         unconf_g_z = conf_predictor(unconf_z_i)
         lamba = torch.Tensor(np.array([args.lamba] * true_conf_batch.shape[0])).to(device)
@@ -145,8 +146,8 @@ if args.use_conf:
 
     # ====Use trained predictor to give confidence score to unconf data====
 
-    unconf_z = torch.cat([unconf_data, unconf_label, teacher_net.feature_extract(unconf_data)], dim=1)
-    pred_conf_vec = conf_predictor(unconf_z)
+    unconf_z = torch.cat([unconf_data, unconf_label, teacher_net.feature_extract(unconf_data).detach()], dim=1)
+    pred_conf_vec = conf_predictor(unconf_z).detach()
     pred_conf = torch.empty(pred_conf_vec.size(0))
     for i in range(len(unconf_z)):
         pred_conf[i] = pred_conf_vec[i, unconf_label[i].long()]
@@ -171,7 +172,7 @@ if args.use_conf:
         total_data_batch = torch.Tensor(data[total_id_batch]).to(device)
         total_conf_batch = torch.Tensor(total_conf[total_id_batch]).to(device)
         ly_prior_batch = torch.Tensor(ly_prior[total_id_batch]).to(device)
-        lteacher_feature_batch = teacher_net.feature_extract(total_data_batch)
+        lteacher_feature_batch = teacher_net.feature_extract(total_data_batch).detach()
         lstudent_feature_batch = student_feature_transform(student_net.feature_extract(total_data_batch))
         kd_loss = kd_criterion(upred_label_batch, utrue_label_batch, total_conf_batch, ly_prior_batch, lteacher_feature_batch, lstudent_feature_batch)
         student_optimizer.zero_grad()
@@ -181,11 +182,11 @@ if args.use_conf:
         eval_id_batch = np.random.choice(len(data), args.eval_batch_size)
         eval_data_batch = torch.Tensor(data[eval_id_batch])
         eval_label_batch = torch.Tensor(label[eval_id_batch])
-        # acc = evaluate_accuracy(student_net, eval_data_batch, eval_label_batch)
+        acc = evaluate_accuracy(student_net, eval_data_batch, eval_label_batch)
         tb_writer.add_scalar('student_kd_loss', kd_loss, i)
-        # tb_writer.add_scalar('student_accuracy', acc, i)
+        tb_writer.add_scalar('student_accuracy', acc, i)
         if i % 100 == 0:
-            print('Student Training Epoch: {}, kd loss: {}'.format(i, kd_loss))
+            print('Student Training Epoch: {}, kd loss: {}, acc: {}'.format(i, kd_loss, acc))
     student_acc = evaluate_accuracy(student_net, data, label)
     print("student final accuracy: {}".format(student_acc))
     plot_decision_boundary(student_net, data, "Toy experiment Student classfification")
@@ -201,7 +202,7 @@ else:
         pred_label_batch = student_net(data_batch)
         noconf_loss = noconf_criterion(args.alpha, pred_label_batch, true_label_batch, teacher_feature_batch, student_feature_batch)
         student_optimizer.zero_grad()
-        noconf_loss.backward(retain_graph=True)
+        noconf_loss.backward()
         student_optimizer.step()
         eval_id_batch = np.random.choice(len(data), args.eval_batch_size)
         eval_data_batch = torch.Tensor(data[eval_id_batch])

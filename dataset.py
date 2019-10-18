@@ -16,14 +16,14 @@ style.use('ggplot')
 class ToyDataset(Dataset):
     def __init__(self, data_num):
         self.data_num = data_num
-        class_0_data_major = np.random.normal((0.30, 0.5), (0.1, 0.08), size=(int(data_num * 3 / 16), 2)).reshape((-1, 2))
-        class_0_data_minor = np.random.normal((0.5, 0.65), (0.05, 0.05), size=(int(data_num / 16), 2)).reshape((-1, 2))
+        class_0_data_major = np.random.normal((0.1, 0.5), (0.15, 0.15), size=(int(data_num * 3 / 16), 2)).reshape((-1, 2))
+        class_0_data_minor = np.random.normal((0.5, 0.9), (0.05, 0.05), size=(int(data_num / 16), 2)).reshape((-1, 2))
         self.data_0 = np.concatenate([class_0_data_major, class_0_data_minor], axis=0)
-        class_1_data_major = np.random.normal((0.70, 0.5), (0.1, 0.08), size=(int(data_num * 3 / 16), 2)).reshape(-1, 2)
-        class_1_data_minor = np.random.normal((0.5, 0.35), (0.05, 0.05), size=(int(data_num / 16), 2)).reshape(-1, 2)
+        class_1_data_major = np.random.normal((0.9, 0.5), (0.15, 0.15), size=(int(data_num * 3 / 16), 2)).reshape(-1, 2)
+        class_1_data_minor = np.random.normal((0.5, 0.1), (0.05, 0.05), size=(int(data_num / 16), 2)).reshape(-1, 2)
         self.data_1 = np.concatenate([class_1_data_major, class_1_data_minor], axis=0)
-        class_2_data_fhalf = self.select_out_data(0.5, 0.35, 0.06, 0.1, 0.12, data_num / 4).reshape(-1, 2)
-        class_2_data_shalf = self.select_out_data(0.5, 0.65, 0.06, 0.1, 0.12, data_num / 4).reshape(-1, 2)
+        class_2_data_fhalf = self.select_out_data(0.5, 0.1, 0.1, 0.2, 0.15, data_num / 4).reshape(-1, 2)
+        class_2_data_shalf = self.select_out_data(0.5, 0.9, 0.1, 0.2, 0.15, data_num / 4).reshape(-1, 2)
         self.data_2 = np.concatenate([class_2_data_fhalf, class_2_data_shalf], axis=0)
         self.data = np.concatenate([self.data_0, self.data_1, self.data_2], axis=0)
         label_0 = np.zeros((self.data_0.shape[0], 1))
@@ -62,6 +62,6 @@ class ToyDataset(Dataset):
         plt.show()
         # fig.savefig('./figure/toy_data.png')
 
-# train_data = ToyDataset(960)
+# train_data = ToyDataset(7680)
 # print(train_data.data.shape)
 # train_data.visualize_data()
